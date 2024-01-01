@@ -1,67 +1,66 @@
+mod faby;
+mod pipes;
+
+use crate::{
+    game::{
+        faby::{drop_faby, spawn_faby},
+        pipes::{move_columns, spawn_column, spawn_columns},
+    },
+    SCREEN_HEIGHT, SCREEN_WIDTH,
+};
 use bevy::prelude::*;
 
-use crate::SCREEN_HEIGHT;
+use self::pipes::PipeSpawnEvent;
 
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
+        app.insert_resource(PipeSpawnTimer(Timer::from_seconds(
+            1.0,
+            TimerMode::Repeating,
+        )));
+        app.add_event::<PipeSpawnEvent>();
         app.add_systems(Startup, spawn_faby);
+        app.add_systems(Startup, spawn_ground);
+        app.add_systems(Update, spawn_columns);
+        app.add_systems(Update, spawn_column);
         app.add_systems(Update, drop_faby);
+        app.add_systems(Update, move_columns);
     }
 }
 
-#[derive(Component)]
-struct Faby;
+pub const GROUND_HEIGHT: f32 = SCREEN_HEIGHT / 5.0;
+
+#[derive(Resource)]
+pub struct PipeSpawnTimer(Timer);
 
 #[derive(Component)]
-struct Velocity(f32);
+pub struct Ground;
 
-fn spawn_faby(mut commands: Commands) {
+fn spawn_ground(mut commands: Commands) {
     commands.spawn((
         SpriteBundle {
             sprite: Sprite {
-                color: Color::YELLOW,
+                color: Color::BLUE,
                 ..default()
             },
             transform: Transform {
+                translation: Vec3 {
+                    x: 0.0,
+                    y: (-SCREEN_HEIGHT / 2.0) + (GROUND_HEIGHT / 2.0),
+                    z: 2.0,
+                },
                 scale: Vec3 {
-                    x: 50.0,
-                    y: 50.0,
+                    x: SCREEN_WIDTH,
+                    y: GROUND_HEIGHT,
                     z: 1.0,
                 },
                 ..default()
             },
             ..default()
         },
-        Faby,
-        Velocity(0.0),
-        Name::new("Faby"),
+        Ground,
+        Name::new("Ground"),
     ));
-}
-
-fn drop_faby(
-    mut transforms: Query<(&mut Transform, &mut Velocity), With<Faby>>,
-    time: Res<Time>,
-    input: Res<Input<KeyCode>>,
-) {
-    for (mut transform, mut velocity) in &mut transforms {
-        velocity.0 -= 100.0;
-
-        if transform.translation.y <= (-SCREEN_HEIGHT / 2.0) + (transform.scale.y / 2.0) {
-            velocity.0 = 0.0;
-            transform.translation.y = (-SCREEN_HEIGHT / 2.0) + (transform.scale.y / 2.0);
-        }
-
-        if input.just_pressed(KeyCode::Space) {
-            velocity.0 = 1000.0;
-        }
-
-        if transform.translation.y >= (SCREEN_HEIGHT / 2.0) - (transform.scale.y / 2.0) {
-            velocity.0 = -100.0;
-            transform.translation.y = (SCREEN_HEIGHT / 2.0) - (transform.scale.y / 2.0);
-        }
-
-        transform.translation.y += velocity.0 * time.delta_seconds();
-    }
 }
