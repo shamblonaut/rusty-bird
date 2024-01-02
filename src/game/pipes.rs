@@ -1,19 +1,30 @@
 use bevy::prelude::*;
 use rand::Rng;
 
-use crate::game::PipeSpawnTimer;
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
+use crate::game::Scrollable;
 
-use super::GROUND_HEIGHT;
+use crate::{game::ground::GROUND_HEIGHT, SCREEN_HEIGHT, SCREEN_WIDTH};
 
 #[derive(Component)]
 pub struct Column;
 
 #[derive(Component)]
+pub struct IncomingColumn;
+
+#[derive(Component)]
 pub struct Pipe;
+
+#[derive(Component)]
+pub struct Gap {
+    pub position: f32,
+    pub size: f32,
+}
 
 #[derive(Event)]
 pub struct PipeSpawnEvent;
+
+#[derive(Resource)]
+pub struct PipeSpawnTimer(pub Timer);
 
 const PIPE_WIDTH: f32 = 100.0;
 const PIPE_HEIGHT: f32 = SCREEN_HEIGHT - (GROUND_HEIGHT / 2.0);
@@ -33,6 +44,12 @@ pub fn spawn_columns(
 
 pub fn spawn_column(mut commands: Commands, mut spawn_event: EventReader<PipeSpawnEvent>) {
     for _ in spawn_event.read() {
+        let mut rng = rand::thread_rng();
+        let gap_position: f32 = (rng.gen_range(
+            (((-SCREEN_HEIGHT / 2.0) + GROUND_HEIGHT + (GAP_SIZE * 1.5)) / 50.0) as i32
+                ..(((SCREEN_HEIGHT / 2.0) - (GAP_SIZE / 2.0)) / 50.0) as i32,
+        ) * 50) as f32;
+
         let column = commands
             .spawn((
                 SpatialBundle {
@@ -42,23 +59,25 @@ pub fn spawn_column(mut commands: Commands, mut spawn_event: EventReader<PipeSpa
                             y: 0.0,
                             z: 1.0,
                         },
+                        scale: Vec3 {
+                            x: PIPE_WIDTH,
+                            y: 1.0,
+                            z: 1.0,
+                        },
                         ..default()
                     },
                     ..default()
                 },
                 Column,
+                Gap {
+                    position: gap_position,
+                    size: GAP_SIZE,
+                },
+                Scrollable,
+                IncomingColumn,
                 Name::new("Column"),
             ))
             .id();
-
-        let gap_position = rand::thread_rng()
-            .gen_range(
-                ((-SCREEN_HEIGHT / 2.0) + GROUND_HEIGHT + (GAP_SIZE * 1.5)) / 50.0
-                    ..((SCREEN_HEIGHT / 2.0) - (GAP_SIZE / 2.0)) / 50.0,
-            )
-            .trunc()
-            * 50.0;
-        info!("Gap Position: {}", gap_position);
 
         let top_pipe = commands
             .spawn((
@@ -74,7 +93,7 @@ pub fn spawn_column(mut commands: Commands, mut spawn_event: EventReader<PipeSpa
                             z: 0.0,
                         },
                         scale: Vec3 {
-                            x: PIPE_WIDTH,
+                            x: 1.0,
                             y: PIPE_HEIGHT,
                             z: 1.0,
                         },
@@ -102,7 +121,7 @@ pub fn spawn_column(mut commands: Commands, mut spawn_event: EventReader<PipeSpa
                             z: 0.0,
                         },
                         scale: Vec3 {
-                            x: PIPE_WIDTH,
+                            x: 1.0,
                             y: PIPE_HEIGHT,
                             z: 1.0,
                         },
@@ -118,14 +137,11 @@ pub fn spawn_column(mut commands: Commands, mut spawn_event: EventReader<PipeSpa
     }
 }
 
-pub fn move_columns(
+pub fn despawn_columns(
     mut commands: Commands,
-    mut transforms: Query<(Entity, &mut Transform), With<Column>>,
-    time: Res<Time>,
+    transforms: Query<(Entity, &Transform), With<Column>>,
 ) {
-    for (column, mut transform) in &mut transforms {
-        transform.translation.x -= 300.0 * time.delta_seconds();
-
+    for (column, transform) in &transforms {
         if transform.translation.x <= (-SCREEN_WIDTH / 2.0) - (PIPE_WIDTH / 2.0) {
             commands.entity(column).despawn_recursive();
         }

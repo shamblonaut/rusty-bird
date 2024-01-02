@@ -16,15 +16,23 @@ fn main() {
                         title: "Flappy Bird".into(),
                         resolution: (720.0, 960.0).into(),
                         resizable: false,
-                        // mode: WindowMode::Fullscreen,
                         ..default()
                     }),
                     ..default()
                 }),
         )
+        .add_state::<AppState>()
         .add_plugins(GamePlugin)
         .add_systems(Startup, setup)
         .run();
+}
+
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+enum AppState {
+    // MainMenu,
+    #[default]
+    InGame,
+    GameOver,
 }
 
 fn setup(mut commands: Commands) {
@@ -34,5 +42,4 @@ fn setup(mut commands: Commands) {
         min_height: SCREEN_HEIGHT,
     };
     commands.spawn(camera);
-    // commands.spawn(Camera2dBundle::default());
 }

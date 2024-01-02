@@ -1,8 +1,9 @@
 use bevy::prelude::*;
 
-use crate::SCREEN_HEIGHT;
+use crate::game::pipes::{Gap, IncomingColumn};
+use crate::AppState;
 
-use super::GROUND_HEIGHT;
+use crate::{game::ground::GROUND_HEIGHT, SCREEN_HEIGHT};
 
 #[derive(Component)]
 pub struct Faby;
@@ -10,7 +11,10 @@ pub struct Faby;
 #[derive(Component)]
 pub struct Velocity(f32);
 
-const FALL_VELOCITY: f32 = 80.0;
+#[derive(Resource)]
+pub struct FabyDead(pub bool);
+
+const FALL_SPEED: f32 = 80.0;
 
 pub fn spawn_faby(mut commands: Commands) {
     commands.spawn((
@@ -44,27 +48,63 @@ pub fn drop_faby(
     mut transforms: Query<(&mut Transform, &mut Velocity), With<Faby>>,
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
+    mut next_state: ResMut<NextState<AppState>>,
+    mut faby_dead: ResMut<FabyDead>,
 ) {
     for (mut transform, mut velocity) in &mut transforms {
-        velocity.0 -= FALL_VELOCITY;
+        velocity.0 -= FALL_SPEED;
 
         if transform.translation.y
             <= (-SCREEN_HEIGHT / 2.0) + (transform.scale.y / 2.0) + GROUND_HEIGHT
         {
             velocity.0 = 0.0;
-            transform.translation.y =
-                (-SCREEN_HEIGHT / 2.0) + (transform.scale.y / 2.0) + GROUND_HEIGHT;
+            next_state.set(AppState::GameOver);
+            faby_dead.0 = true;
+            return;
         }
 
-        if input.just_pressed(KeyCode::Space) {
+        if input.just_pressed(KeyCode::Space) && !faby_dead.0 {
             velocity.0 = 1000.0;
         }
 
         if transform.translation.y >= (SCREEN_HEIGHT / 2.0) - (transform.scale.y / 2.0) {
-            velocity.0 = -FALL_VELOCITY;
+            velocity.0 = -FALL_SPEED;
             transform.translation.y = (SCREEN_HEIGHT / 2.0) - (transform.scale.y / 2.0);
         }
 
         transform.translation.y += velocity.0 * time.delta_seconds();
+    }
+}
+
+pub fn check_collision(
+    mut commands: Commands,
+    faby_transform: Query<&Transform, With<Faby>>,
+    mut faby_dead: ResMut<FabyDead>,
+    column: Query<(Entity, &Transform, &Gap), With<IncomingColumn>>,
+) {
+    let faby_transform = faby_transform.single();
+
+    for (column_entity, column_transform, gap) in &column {
+        if faby_transform.translation.x + (faby_transform.scale.x / 2.0)
+            <= column_transform.translation.x - (column_transform.scale.x / 2.0)
+        {
+            return;
+        }
+
+        if (faby_transform.translation.x - (faby_transform.scale.x / 2.0)
+            <= column_transform.translation.x + (column_transform.scale.x / 2.0))
+            && (faby_transform.translation.y + (faby_transform.scale.y / 2.0) >= gap.position
+                || faby_transform.translation.y - (faby_transform.scale.y / 2.0)
+                    <= (gap.position - gap.size))
+        {
+            faby_dead.0 = true;
+            return;
+        }
+
+        if faby_transform.translation.x - (faby_transform.scale.x / 2.0)
+            >= column_transform.translation.x + (column_transform.scale.x / 2.0)
+        {
+            commands.entity(column_entity).remove::<IncomingColumn>();
+        }
     }
 }

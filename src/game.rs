@@ -1,66 +1,65 @@
 mod faby;
+mod ground;
 mod pipes;
 
 use crate::{
     game::{
-        faby::{drop_faby, spawn_faby},
-        pipes::{move_columns, spawn_column, spawn_columns},
+        faby::{check_collision, drop_faby, spawn_faby},
+        ground::{reset_ground, spawn_ground},
+        pipes::{despawn_columns, spawn_column, spawn_columns},
     },
-    SCREEN_HEIGHT, SCREEN_WIDTH,
+    AppState,
+};
+
+use self::{
+    faby::FabyDead,
+    pipes::{PipeSpawnEvent, PipeSpawnTimer},
 };
 use bevy::prelude::*;
-
-use self::pipes::PipeSpawnEvent;
 
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(PipeSpawnTimer(Timer::from_seconds(
-            1.0,
+            1.5,
             TimerMode::Repeating,
         )));
+        app.insert_resource(FabyDead(false));
         app.add_event::<PipeSpawnEvent>();
         app.add_systems(Startup, spawn_faby);
         app.add_systems(Startup, spawn_ground);
-        app.add_systems(Update, spawn_columns);
-        app.add_systems(Update, spawn_column);
-        app.add_systems(Update, drop_faby);
-        app.add_systems(Update, move_columns);
+
+        app.add_systems(
+            Update,
+            (
+                spawn_columns,
+                spawn_column,
+                despawn_columns,
+                reset_ground,
+                scroll_screen,
+                drop_faby,
+                check_collision,
+            )
+                .run_if(in_state(AppState::InGame)),
+        );
     }
 }
 
-pub const GROUND_HEIGHT: f32 = SCREEN_HEIGHT / 5.0;
-
-#[derive(Resource)]
-pub struct PipeSpawnTimer(Timer);
-
 #[derive(Component)]
-pub struct Ground;
+pub struct Scrollable;
 
-fn spawn_ground(mut commands: Commands) {
-    commands.spawn((
-        SpriteBundle {
-            sprite: Sprite {
-                color: Color::BLUE,
-                ..default()
-            },
-            transform: Transform {
-                translation: Vec3 {
-                    x: 0.0,
-                    y: (-SCREEN_HEIGHT / 2.0) + (GROUND_HEIGHT / 2.0),
-                    z: 2.0,
-                },
-                scale: Vec3 {
-                    x: SCREEN_WIDTH,
-                    y: GROUND_HEIGHT,
-                    z: 1.0,
-                },
-                ..default()
-            },
-            ..default()
-        },
-        Ground,
-        Name::new("Ground"),
-    ));
+const SCROLL_SPEED: f32 = 300.0;
+
+fn scroll_screen(
+    mut transforms: Query<&mut Transform, With<Scrollable>>,
+    time: Res<Time>,
+    faby_dead: Res<FabyDead>,
+) {
+    for mut transform in &mut transforms {
+        if faby_dead.0 {
+            return;
+        }
+        transform.translation.x -= SCROLL_SPEED * time.delta_seconds();
+    }
 }
