@@ -26,9 +26,9 @@ pub struct PipeSpawnEvent;
 #[derive(Resource)]
 pub struct PipeSpawnTimer(pub Timer);
 
-const PIPE_WIDTH: f32 = 100.0;
-const PIPE_HEIGHT: f32 = SCREEN_HEIGHT - (GROUND_HEIGHT / 2.0);
-const GAP_SIZE: f32 = PIPE_HEIGHT / 4.0;
+const PIPE_WIDTH: f32 = 52.0;
+const PIPE_HEIGHT: f32 = 320.0;
+const GAP_SIZE: f32 = PIPE_HEIGHT / 3.0;
 
 pub fn spawn_columns(
     time: Res<Time>,
@@ -42,7 +42,11 @@ pub fn spawn_columns(
     }
 }
 
-pub fn spawn_column(mut commands: Commands, mut spawn_event: EventReader<PipeSpawnEvent>) {
+pub fn spawn_column(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut spawn_event: EventReader<PipeSpawnEvent>,
+) {
     for _ in spawn_event.read() {
         let mut rng = rand::thread_rng();
         let gap_position: f32 = (rng.gen_range(
@@ -82,8 +86,9 @@ pub fn spawn_column(mut commands: Commands, mut spawn_event: EventReader<PipeSpa
         let top_pipe = commands
             .spawn((
                 SpriteBundle {
+                    texture: asset_server.load("graphics/pipe-top.png"),
                     sprite: Sprite {
-                        color: Color::GREEN,
+                        custom_size: Some(Vec2::from((1.0, 1.0))),
                         ..default()
                     },
                     transform: Transform {
@@ -110,8 +115,9 @@ pub fn spawn_column(mut commands: Commands, mut spawn_event: EventReader<PipeSpa
         let bottom_pipe = commands
             .spawn((
                 SpriteBundle {
+                    texture: asset_server.load("graphics/pipe-bottom.png"),
                     sprite: Sprite {
-                        color: Color::GREEN,
+                        custom_size: Some(Vec2::from((1.0, 1.0))),
                         ..default()
                     },
                     transform: Transform {

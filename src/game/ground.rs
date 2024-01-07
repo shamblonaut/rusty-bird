@@ -12,7 +12,7 @@ pub struct Ground;
 
 pub const GROUND_HEIGHT: f32 = SCREEN_HEIGHT / 5.0;
 
-pub fn spawn_ground(mut commands: Commands) {
+pub fn spawn_ground(mut commands: Commands, asset_server: Res<AssetServer>) {
     let container = commands
         .spawn((
             SpatialBundle::default(),
@@ -21,11 +21,14 @@ pub fn spawn_ground(mut commands: Commands) {
         ))
         .id();
 
+    let texture = asset_server.load("graphics/ground.png");
+
     let ground_1 = commands
         .spawn((
             SpriteBundle {
+                texture: texture.clone(),
                 sprite: Sprite {
-                    color: Color::RED,
+                    custom_size: Some(Vec2::from((1.0, 1.0))),
                     ..default()
                 },
                 transform: Transform {
@@ -34,11 +37,7 @@ pub fn spawn_ground(mut commands: Commands) {
                         y: (-SCREEN_HEIGHT / 2.0) + (GROUND_HEIGHT / 2.0),
                         z: 2.0,
                     },
-                    scale: Vec3 {
-                        x: SCREEN_WIDTH + 10.0,
-                        y: GROUND_HEIGHT,
-                        z: 1.0,
-                    },
+                    scale: Vec3::from((SCREEN_WIDTH, GROUND_HEIGHT, 1.0)),
                     ..default()
                 },
                 ..default()
@@ -53,8 +52,9 @@ pub fn spawn_ground(mut commands: Commands) {
     let ground_2 = commands
         .spawn((
             SpriteBundle {
+                texture: texture.clone(),
                 sprite: Sprite {
-                    color: Color::RED,
+                    custom_size: Some(Vec2::from((1.0, 1.0))),
                     ..default()
                 },
                 transform: Transform {
@@ -63,11 +63,7 @@ pub fn spawn_ground(mut commands: Commands) {
                         y: (-SCREEN_HEIGHT / 2.0) + (GROUND_HEIGHT / 2.0),
                         z: 2.0,
                     },
-                    scale: Vec3 {
-                        x: SCREEN_WIDTH + 10.0,
-                        y: GROUND_HEIGHT,
-                        z: 1.0,
-                    },
+                    scale: Vec3::from((SCREEN_WIDTH, GROUND_HEIGHT, 1.0)),
                     ..default()
                 },
                 ..default()
@@ -82,8 +78,8 @@ pub fn spawn_ground(mut commands: Commands) {
 
 pub fn reset_ground(mut transforms: Query<&mut Transform, With<Ground>>) {
     for mut transform in &mut transforms {
-        if transform.translation.x <= -SCREEN_WIDTH {
-            transform.translation.x = SCREEN_WIDTH;
+        if transform.translation.x < -SCREEN_WIDTH {
+            transform.translation.x += SCREEN_WIDTH * 2.0;
         }
     }
 }

@@ -14,13 +14,14 @@ pub struct Velocity(f32);
 #[derive(Resource)]
 pub struct FabyDead(pub bool);
 
-const FALL_SPEED: f32 = 80.0;
+const FALL_SPEED: f32 = 35.0;
 
-pub fn spawn_faby(mut commands: Commands) {
+pub fn spawn_faby(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         SpriteBundle {
+            texture: asset_server.load("graphics/faby-red.png"),
             sprite: Sprite {
-                color: Color::YELLOW,
+                custom_size: Some(Vec2::from((1.0, 1.0))),
                 ..default()
             },
             transform: Transform {
@@ -29,11 +30,7 @@ pub fn spawn_faby(mut commands: Commands) {
                     y: 0.0,
                     z: 3.0,
                 },
-                scale: Vec3 {
-                    x: 50.0,
-                    y: 50.0,
-                    z: 1.0,
-                },
+                scale: Vec3::from((34.0, 24.0, 1.0)),
                 ..default()
             },
             ..default()
@@ -64,7 +61,7 @@ pub fn drop_faby(
         }
 
         if input.just_pressed(KeyCode::Space) && !faby_dead.0 {
-            velocity.0 = 1000.0;
+            velocity.0 = FALL_SPEED * 12.5;
         }
 
         if transform.translation.y >= (SCREEN_HEIGHT / 2.0) - (transform.scale.y / 2.0) {
@@ -73,6 +70,15 @@ pub fn drop_faby(
         }
 
         transform.translation.y += velocity.0 * time.delta_seconds();
+
+        if !(transform.rotation.z > 0.3 && velocity.0 > 0.0)
+            && !(transform.rotation.z < -0.5 && velocity.0 < 0.0)
+        {
+            transform.rotate_z(velocity.0 / 35.0 * time.delta_seconds());
+        }
+        if transform.rotation.z < -0.5 && transform.rotation.z > -0.6 {
+            info!("Velocity: {}", velocity.0);
+        }
     }
 }
 

@@ -3,8 +3,8 @@ mod game;
 use crate::game::GamePlugin;
 use bevy::{prelude::*, render::camera::ScalingMode};
 
-pub const SCREEN_WIDTH: f32 = 768.0;
-pub const SCREEN_HEIGHT: f32 = 1024.0;
+pub const SCREEN_WIDTH: f32 = 288.0;
+pub const SCREEN_HEIGHT: f32 = 512.0;
 
 fn main() {
     App::new()
@@ -14,7 +14,7 @@ fn main() {
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         title: "Flappy Bird".into(),
-                        resolution: (720.0, 960.0).into(),
+                        resolution: (SCREEN_WIDTH * 2.0, SCREEN_HEIGHT * 2.0).into(),
                         resizable: false,
                         ..default()
                     }),
